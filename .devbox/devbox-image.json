@@ -1,0 +1,246 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "imageTemplateName": {
+      "type": "string",
+      "defaultValue": "eShop-DevBox-Image"
+    },
+    "imageGalleryName": {
+      "type": "string"
+    },
+    "imageDefinitionName": {
+      "type": "string",
+      "defaultValue": "eShop-Dev-Environment"
+    },
+    "imageReplicationRegions": {
+      "type": "array",
+      "defaultValue": [
+        "eastus"
+      ]
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.VirtualMachineImages/imageTemplates",
+      "apiVersion": "2022-02-14",
+      "name": "[parameters('imageTemplateName')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "buildTimeoutInMinutes": 120,
+        "vmProfile": {
+          "vmSize": "Standard_D8s_v3",
+          "osDiskSizeGB": 127
+        },
+        "source": {
+          "type": "PlatformImage",
+          "publisher": "MicrosoftWindowsDesktop",
+          "offer": "windows-11-22h2-avd-m365",
+          "sku": "win11-22h2-avd-m365",
+          "version": "latest"
+        },
+        "customize": [
+          {
+            "type": "PowerShell",
+            "name": "InstallChocolatey",
+            "inline": [
+              "Set-ExecutionPolicy Bypass -Scope Process -Force",
+              "[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072",
+              "iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))",
+              "choco feature enable -n allowGlobalConfirmation"
+            ]
+          },
+          {
+            "type": "PowerShell",
+            "name": "InstallVisualStudio2022Enterprise",
+            "inline": [
+              "choco install visualstudio2022enterprise -y",
+              "choco install visualstudio2022-workload-azure -y",
+              "choco install visualstudio2022-workload-netcrossplat -y",
+              "choco install visualstudio2022-workload-netcoretools -y",
+              "choco install visualstudio2022-workload-netweb -y"
+            ]
+          },
+          {
+            "type": "PowerShell",
+            "name": "InstallDotNet9SDK",
+            "inline": [
+              "choco install dotnet-9.0-sdk -y"
+            ]
+          },
+          {
+            "type": "PowerShell",
+            "name": "InstallDotNetAspireComponent",
+            "inline": [
+              "# Install the .NET Aspire SDK component",
+              "$vsInstallerPath = \"${env:ProgramFiles(x86)}\\Microsoft Visual Studio\\Installer\\vs_installer.exe\"",
+              "$installArgs = \"modify --installPath \\\"%ProgramFiles%\\Microsoft Visual Studio\\2022\\Enterprise\\\" --channelId VisualStudio.17.Release --productId Microsoft.VisualStudio.Product.Enterprise --add Microsoft.VisualStudio.Workload.NetWeb --add Microsoft.AspNet.AspireWorkload --add Microsoft.VisualStudio.ComponentGroup.AspirePackages --quiet --norestart --wait\"",
+              "Start-Process -FilePath $vsInstallerPath -ArgumentList $installArgs -Wait -NoNewWindow"
+            ]
+          },
+          {
+            "type": "PowerShell",
+            "name": "InstallDockerDesktop",
+            "inline": [
+              "choco install docker-desktop -y"
+            ]
+          },
+          {
+            "type": "PowerShell",
+            "name": "InstallGit",
+            "inline": [
+              "choco install git -y"
+            ]
+          },
+          {
+            "type": "PowerShell",
+            "name": "InstallMauiWorkload",
+            "inline": [
+              "dotnet workload install maui"
+            ]
+          },
+          {
+            "type": "PowerShell",
+            "name": "InstallVSCode",
+            "inline": [
+              "choco install vscode -y",
+              "choco install vscode-csharp -y"
+            ]
+          },
+          {
+            "type": "PowerShell",
+            "name": "InstallAzureCLI",
+            "inline": [
+              "choco install azure-cli -y"
+            ]
+          },
+          {
+            "type": "PowerShell",
+            "name": "InstallAzureDeveloperCLI",
+            "inline": [
+              "choco install azd -y"
+            ]
+          },
+          {
+            "type": "PowerShell",
+            "name": "InstallWinGetConfiguration",
+            "inline": [
+              "# Install WinGet Configuration Module",
+              "Install-Module -Name Microsoft.WinGet.Configuration -AllowPrerelease -AcceptLicense -Force"
+            ]
+          },
+          {
+            "type": "PowerShell",
+            "name": "InstallPostgreSQL",
+            "inline": [
+              "choco install postgresql -y"
+            ]
+          },
+          {
+            "type": "PowerShell",
+            "name": "SetupDevHomeIntegration",
+            "inline": [
+              "# Create folder for repo clone and setup instructions",
+              "New-Item -Path C:\\DevBoxSetup -ItemType Directory -Force",
+              "# Create a setup script for the user to run after first login",
+              "$setupScript = @'",
+              "# eShop Dev Environment Setup",
+              "Write-Host 'Setting up eShop Development Environment...' -ForegroundColor Green",
+              "",
+              "# Clone the repository if specified",
+              "if (-not (Test-Path -Path $HOME\\source\\repos\\eShop)) {",
+              "    Write-Host 'Cloning eShop repository...' -ForegroundColor Cyan",
+              "    git clone https://github.com/dotnet/eshop.git $HOME\\source\\repos\\eShop",
+              "}",
+              "",
+              "# Navigate to the repository",
+              "cd $HOME\\source\\repos\\eShop",
+              "",
+              "# Install .NET HTTPS development certificates",
+              "Write-Host 'Installing HTTPS development certificates...' -ForegroundColor Cyan",
+              "dotnet dev-certs https --trust",
+              "",
+              "# Install any additional Visual Studio components that might be needed",
+              "Write-Host 'Setup complete!' -ForegroundColor Green",
+              "Write-Host 'You can now open Visual Studio and load eShop.Web.slnf to start development.' -ForegroundColor Yellow",
+              "'@",
+              "",
+              "Set-Content -Path C:\\DevBoxSetup\\setup.ps1 -Value $setupScript",
+              "",
+              "# Create a README file with instructions",
+              "$readmeContent = @'",
+              "# eShop Development Environment",
+              "",
+              "This Dev Box is pre-configured with all the tools needed for developing the eShop reference application.",
+              "",
+              "## Getting Started",
+              "",
+              "1. Run the setup script to complete the environment configuration:",
+              "   ```",
+              "   powershell -ExecutionPolicy Bypass -File C:\\DevBoxSetup\\setup.ps1",
+              "   ```",
+              "",
+              "2. Open Visual Studio and load the solution file `eShop.Web.slnf`",
+              "",
+              "3. Ensure Docker Desktop is running before starting the application",
+              "",
+              "4. Set `eShop.AppHost.csproj` as the startup project and press F5 to run the application with .NET Aspire",
+              "",
+              "## Included Tools",
+              "",
+              "- Visual Studio 2022 Enterprise",
+              "- .NET 9 SDK",
+              "- .NET Aspire SDK",
+              "- .NET MAUI workload",
+              "- Docker Desktop",
+              "- Git",
+              "- Visual Studio Code with C# extensions",
+              "- Azure CLI",
+              "- Azure Developer CLI (azd)",
+              "- PostgreSQL",
+              "'@",
+              "",
+              "Set-Content -Path C:\\DevBoxSetup\\README.md -Value $readmeContent",
+              "",
+              "# Create a shortcut to the setup script on the desktop",
+              "$WshShell = New-Object -ComObject WScript.Shell",
+              "$Shortcut = $WshShell.CreateShortcut(\"$env:Public\\Desktop\\eShop Setup.lnk\")",
+              "$Shortcut.TargetPath = \"powershell.exe\"",
+              "$Shortcut.Arguments = \"-ExecutionPolicy Bypass -File C:\\DevBoxSetup\\setup.ps1\"",
+              "$Shortcut.WorkingDirectory = \"C:\\DevBoxSetup\"",
+              "$Shortcut.Description = \"Set up eShop development environment\"",
+              "$Shortcut.IconLocation = \"powershell.exe,0\"",
+              "$Shortcut.Save()"
+            ]
+          },
+          {
+            "type": "WindowsRestart",
+            "restartCheckCommand": "echo Azure DevBox environment setup complete"
+          }
+        ],
+        "distribute": [
+          {
+            "type": "SharedImage",
+            "galleryImageId": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Compute/galleries/', parameters('imageGalleryName'), '/images/', parameters('imageDefinitionName'))]",
+            "runOutputName": "[parameters('imageTemplateName')]",
+            "artifactTags": {
+              "source": "azureVmImageBuilder",
+              "baseOS": "windows11-22h2"
+            },
+            "replicationRegions": "[parameters('imageReplicationRegions')]"
+          }
+        ]
+      }
+    }
+  ],
+  "outputs": {
+    "imageTemplateName": {
+      "type": "string",
+      "value": "[parameters('imageTemplateName')]"
+    },
+    "imageDefinitionName": {
+      "type": "string",
+      "value": "[parameters('imageDefinitionName')]"
+    }
+  }
+}

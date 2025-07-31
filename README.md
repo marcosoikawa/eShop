@@ -33,19 +33,25 @@ Or
 
 - Run the following commands in a Powershell & Terminal running as `Administrator` to automatically configuration your environment with the required tools to build and run this application. (Note: A restart is required after running the script below.)
 
-##### Install Visual Studio Code and related extensions
-```powershell
-install-Module -Name Microsoft.WinGet.Configuration -AllowPrerelease -AcceptLicense  -Force
+##### Install Visual Studio Code and related extensionsinstall-Module -Name Microsoft.WinGet.Configuration -AllowPrerelease -AcceptLicense  -Force
 $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
 get-WinGetConfiguration -file .\.configurations\vscode.dsc.yaml | Invoke-WinGetConfiguration -AcceptConfigurationAgreements
-```
-
 > Note: These commands may require `sudo`
 
 - Optional: Install [Visual Studio Code with C# Dev Kit](https://code.visualstudio.com/docs/csharp/get-started)
 - Optional: Install [.NET MAUI Workload](https://learn.microsoft.com/dotnet/maui/get-started/installation?tabs=visual-studio-code)
 
 > Note: When running on Mac with Apple Silicon (M series processor), Rosetta 2 for grpc-tools. 
+
+#### Using Azure Dev Box
+For team development scenarios, this repository includes an Azure Dev Box image definition that provides a fully configured development environment with all required tools pre-installed.
+
+See [.devbox/README.md](.devbox/README.md) for detailed instructions on:
+- Creating the Dev Box image in your Azure subscription
+- Setting up a Dev Box project
+- Using the pre-configured development environment
+
+This option is ideal for team scenarios where you want consistent development environments across all team members.
 
 ### Running the solution
 
@@ -57,33 +63,17 @@ get-WinGetConfiguration -file .\.configurations\vscode.dsc.yaml | Invoke-WinGetC
  - Ensure that `eShop.AppHost.csproj` is your startup project
  - Hit Ctrl-F5 to launch Aspire
 
-* Or run the application from your terminal:
-```powershell
-dotnet run --project src/eShop.AppHost/eShop.AppHost.csproj
-```
-then look for lines like this in the console output in order to find the URL to open the Aspire dashboard:
-```sh
-Login to the dashboard at: http://localhost:19888/login?t=uniquelogincodeforyou
-```
-
+* Or run the application from your terminal:dotnet run --project src/eShop.AppHost/eShop.AppHost.csprojthen look for lines like this in the console output in order to find the URL to open the Aspire dashboard:Login to the dashboard at: http://localhost:19888/login?t=uniquelogincodeforyou
 > You may need to install ASP.NET Core HTTPS development certificates first, and then close all browser tabs. Learn more at https://aka.ms/aspnet/https-trust-dev-cert
 
 ### Azure Open AI
 
 When using Azure OpenAI, inside *eShop.AppHost/appsettings.json*, add the following section:
-
-```json
   "ConnectionStrings": {
     "OpenAi": "Endpoint=xxx;Key=xxx;"
   }
-```
-
 Replace the values with your own. Then, in the eShop.AppHost *Program.cs*, set this value to **true**
-
-```csharp
 bool useOpenAI = false;
-```
-
 Here's additional guidance on the [.NET Aspire OpenAI component](https://learn.microsoft.com/dotnet/aspire/azureai/azureai-openai-component?tabs=dotnet-cli). 
 
 ### Use Azure Developer CLI
@@ -91,25 +81,13 @@ Here's additional guidance on the [.NET Aspire OpenAI component](https://learn.m
 You can use the [Azure Developer CLI](https://aka.ms/azd) to run this project on Azure with only a few commands. Follow the next instructions:
 
 - Install the latest or update to the latest [Azure Developer CLI (azd)](https://aka.ms/azure-dev/install).
-- Log in `azd` (if you haven't done it before) to your Azure account:
-```sh
-azd auth login
-```
-- Initialize `azd` from the root of the repo.
-```sh
-azd init
-```
-- During init:
+- Log in `azd` (if you haven't done it before) to your Azure account:azd auth login- Initialize `azd` from the root of the repo.azd init- During init:
   - Select `Use code in the current directory`. Azd will automatically detect the .NET Aspire project.
   - Confirm `.NET (Aspire)` and continue.
   - Select which services to expose to the Internet (exposing `webapp` is enough to test the sample).
   - Finalize the initialization by giving a name to your environment.
 
-- Create Azure resources and deploy the sample by running:
-```sh
-azd up
-```
-Notes:
+- Create Azure resources and deploy the sample by running:azd upNotes:
   - The operation takes a few minutes the first time it is ever run for an environment.
   - At the end of the process, `azd` will display the `url` for the webapp. Follow that link to test the sample.
   - You can run `azd up` after saving changes to the sample to re-deploy and update the sample.

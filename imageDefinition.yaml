@@ -1,0 +1,32 @@
+$schema: "1.0"
+name: "eshop-microservices-dev"
+image: microsoftvisualstudio_visualstudioplustools_vs-2022-ent-general-win11-m365-gen2
+tasks:
+  - name: winget
+    description: Install Git for version control
+    parameters:
+      package: Git.Git
+  - name: winget
+    description: Install Docker Desktop for containerization
+    parameters:
+      package: Docker.DockerDesktop
+  - name: winget
+    description: Install Azure CLI for Azure management
+    parameters:
+      package: Microsoft.AzureCLI
+  - name: winget
+    description: Install Azure Developer CLI for Azure development workflow
+    parameters:
+      package: Microsoft.Azd
+  - name: winget
+    description: Install Node.js LTS for JavaScript/TypeScript development and Playwright
+    parameters:
+      package: OpenJS.NodeJS.LTS
+  - name: winget
+    description: Install Postman for API testing and development
+    parameters:
+      package: Postman.Postman
+  - name: winget
+    description: Install SQL Server Management Studio for database management
+    parameters:
+      package: Microsoft.SQLServerManagementStudio
